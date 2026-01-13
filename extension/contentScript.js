@@ -42,6 +42,48 @@ function parseAuthorFromMeta(raw) {
   return m ? normalizeText(m[1]) : s;
 }
 
+function getAsinFromUrl(urlString) {
+  try {
+    const u = new URL(urlString);
+    return u.searchParams.get("asin") || u.searchParams.get("ASIN") || u.searchParams.get("book") || "";
+  } catch {
+    return "";
+  }
+}
+
+function pickBestFromSrcset(srcset) {
+  // srcset: "url 1x, url 2x" or "url 640w, url 1280w"
+  const parts = String(srcset || "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return "";
+  // Prefer the last one (usually largest)
+  const last = parts[parts.length - 1];
+  return last.split(/\s+/)[0] || "";
+}
+
+function getCoverImageUrl() {
+  const img =
+    document.querySelector("#kp-notebook-cover-image img") ||
+    document.querySelector("img.kp-notebook-cover-image") ||
+    document.querySelector("img[class*='kp-notebook'][src]") ||
+    document.querySelector("img[src*='images-na'][alt]") ||
+    null;
+
+  if (!img) return "";
+  const srcset = img.getAttribute("srcset") || "";
+  const best = pickBestFromSrcset(srcset);
+  const src = img.getAttribute("src") || "";
+  return best || src || "";
+}
+
+function getAmazonProductUrl(asin) {
+  if (!asin) return "";
+  const host = location.hostname.includes("amazon.co.jp") ? "www.amazon.co.jp" : "www.amazon.com";
+  return `https://${host}/dp/${encodeURIComponent(asin)}`;
+}
+
 function parseLocationNumber(raw) {
   if (!raw) return undefined;
   const m = String(raw).replace(/,/g, "").match(/(\d+)/);
@@ -132,6 +174,10 @@ async function ensureLibraryLoaded() {
 function scrapeNotebook() {
   const rejectTitles = new Set(["メモとハイライト", "メモとハイライト。"]);
   const rejectAuthors = new Set(["メモ付きのkindle本", "メモ付きのKindle本"]);
+
+  const asin = getAsinFromUrl(location.href);
+  const cover_image_url = getCoverImageUrl();
+  const source_url = getAmazonProductUrl(asin);
 
   // Title candidates (avoid overly broad selectors like plain h3)
   const title =
@@ -235,7 +281,10 @@ function scrapeNotebook() {
   return {
     book: {
       title: title && !rejectTitles.has(normalizeText(title)) ? title : "(タイトル不明)",
-      author: author || ""
+      author: author || "",
+      asin: asin || undefined,
+      cover_image_url: cover_image_url || undefined,
+      source_url: source_url || undefined
     },
     highlights
   };

@@ -139,6 +139,10 @@ const cache = {
   booksByKey: new Map()
 };
 
+function invalidateBooksCache() {
+  cache.booksByKey = new Map();
+}
+
 async function findReadwiseBookId(token, book) {
   const key = bookKey(book);
   if (cache.token === token && cache.booksByKey.has(key)) return cache.booksByKey.get(key);
@@ -158,6 +162,36 @@ async function findReadwiseBookId(token, book) {
   return cache.booksByKey.get(key);
 }
 
+async function patchReadwiseBook(token, bookId, patch) {
+  if (!bookId) return { ok: false, error: "bookId is missing" };
+  if (!patch || typeof patch !== "object") return { ok: false, error: "patch is invalid" };
+
+  // Best-effort: the books API typically supports PATCH /api/v2/books/{id}/
+  const url = `${READWISE_BOOKS_ENDPOINT}${encodeURIComponent(bookId)}/`;
+  try {
+    await readwiseFetch(token, url, { method: "PATCH", body: JSON.stringify(patch) });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
+async function ensureReadwiseCover(token, book, maybeBookId) {
+  const cover = book?.cover_image_url;
+  const sourceUrl = book?.source_url;
+  if (!cover && !sourceUrl) return { ok: true, skipped: true };
+
+  const bookId = maybeBookId || (await findReadwiseBookId(token, book));
+  if (!bookId) return { ok: false, error: "Readwise側に書籍が見つかりませんでした。" };
+
+  const patch = {};
+  if (cover) patch.cover_image_url = cover;
+  if (sourceUrl) patch.source_url = sourceUrl;
+
+  // Some Readwise accounts may not accept these fields; best-effort.
+  return await patchReadwiseBook(token, bookId, patch);
+}
+
 async function getExistingHighlightKeys(token, bookId) {
   const url = `${READWISE_HIGHLIGHTS_ENDPOINT}?page_size=200&book_id=${encodeURIComponent(bookId)}`;
   const highlights = await readwiseGetAllPages(token, url, 100);
@@ -172,7 +206,7 @@ async function getExistingHighlightKeys(token, bookId) {
 
 async function dedupeAndPush({ token, book, highlights }) {
   // If the book exists on Readwise, fetch existing highlights and filter.
-  const bookId = await findReadwiseBookId(token, book);
+  let bookId = await findReadwiseBookId(token, book);
   let existingKeys = null;
   if (bookId) {
     existingKeys = await getExistingHighlightKeys(token, bookId);
@@ -199,11 +233,18 @@ async function dedupeAndPush({ token, book, highlights }) {
   }
 
   const pushed = await pushHighlightsToReadwise({ token, book, highlights: filtered, bookId });
+  // If the book didn't exist yet, it may have been created by this push; refresh and set cover.
+  if (!bookId) {
+    invalidateBooksCache();
+    bookId = await findReadwiseBookId(token, book);
+  }
+  const coverResult = await ensureReadwiseCover(token, book, bookId);
   return {
     ...pushed,
     skipped_duplicates: skipped,
     sent: filtered.length,
-    book_id: bookId || null
+    book_id: bookId || null,
+    cover: coverResult
   };
 }
 
