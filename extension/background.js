@@ -234,7 +234,25 @@ async function waitForTabComplete(tabId, timeoutMs = 60000) {
 }
 
 async function sendToTab(tabId, message) {
-  return await chrome.tabs.sendMessage(tabId, message);
+  try {
+    return await chrome.tabs.sendMessage(tabId, message);
+  } catch (e) {
+    const msg = String(e?.message || e);
+    const needsInject =
+      msg.includes("Could not establish connection") ||
+      msg.includes("Receiving end does not exist") ||
+      msg.includes("The message port closed");
+
+    if (!needsInject) throw e;
+
+    // Ensure the content script is injected (helps with SPA navigations / race conditions).
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["contentScript.js"]
+    });
+
+    return await chrome.tabs.sendMessage(tabId, message);
+  }
 }
 
 async function listBooksFromNotebook(tabId) {
@@ -264,11 +282,21 @@ async function runBulkImport({ token, tabId }) {
     try {
       books = await listBooksFromNotebook(tabId);
     } catch {
-      // Navigate to /kp/notebook and retry.
-      await chrome.tabs.update(tabId, { url: `${origin}/kp/notebook` });
-      await waitForTabComplete(tabId);
-      await sleep(800);
-      books = await listBooksFromNotebook(tabId);
+      // Navigate to notebook library and retry (Amazon may redirect between /kp/notebook and /notebook/).
+      const candidates = [`${origin}/kp/notebook`, `${origin}/notebook/`, `${origin}/notebook`];
+      let lastErr = null;
+      for (const candidate of candidates) {
+        try {
+          await chrome.tabs.update(tabId, { url: candidate });
+          await waitForTabComplete(tabId);
+          await sleep(900);
+          books = await listBooksFromNotebook(tabId);
+          if (books.length) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (!books.length && lastErr) throw lastErr;
     }
 
     if (books.length === 0) {

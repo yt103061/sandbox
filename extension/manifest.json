@@ -3,16 +3,28 @@
   "name": "Kindle Highlights → Readwise (Amazon.co.jp)",
   "description": "Amazon.co.jpのKindleノートブックからハイライトを抽出してReadwiseに送信します。",
   "version": "0.2.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_title": "Readwiseへ取り込み",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "options_page": "options.html",
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "activeTab", "tabs"],
+  "permissions": ["storage", "activeTab", "tabs", "scripting"],
   "host_permissions": [
     "https://read.amazon.co.jp/*",
     "https://read.amazon.com/*",

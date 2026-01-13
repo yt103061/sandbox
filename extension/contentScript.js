@@ -15,6 +15,33 @@ function firstText(selectors) {
   return "";
 }
 
+function firstTextFiltered(selectors, rejectSet) {
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    const txt = el?.textContent?.trim();
+    if (!txt) continue;
+    if (rejectSet && rejectSet.has(txt)) continue;
+    return txt;
+  }
+  return "";
+}
+
+function normalizeText(s) {
+  return String(s || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseAuthorFromMeta(raw) {
+  const s = normalizeText(raw);
+  if (!s) return "";
+  // Examples: "著者: 山田 太郎" / "著：山田太郎" / "Author: ..."
+  const m =
+    s.match(/(?:著者|著|Author|作者)\s*[:：]\s*(.+)$/i) ||
+    s.match(/(?:著者|著|Author|作者)\s+(.+)$/i);
+  return m ? normalizeText(m[1]) : s;
+}
+
 function parseLocationNumber(raw) {
   if (!raw) return undefined;
   const m = String(raw).replace(/,/g, "").match(/(\d+)/);
@@ -80,24 +107,74 @@ async function ensureHighlightsLoaded() {
   }
 }
 
-function scrapeNotebook() {
-  const title = firstText([
-    // Common Kindle Notebook title selectors
-    "#kp-notebook-title",
-    ".kp-notebook-title",
-    "h3.kp-notebook-title",
-    "h3#kp-notebook-title",
-    "h3.a-size-large",
-    "h3"
-  ]);
+async function ensureLibraryLoaded() {
+  // Library pages often lazy-load more books as you scroll.
+  const scroller = document.scrollingElement || document.documentElement;
+  if (!scroller) return;
 
-  const author = firstText([
-    "#kp-notebook-author",
-    ".kp-notebook-author",
-    ".kp-notebook-metadata",
-    ".a-color-secondary",
-    "p.kp-notebook-author"
-  ]);
+  let lastCount = 0;
+  for (let i = 0; i < 30; i++) {
+    // Count current book links (asin=...).
+    const count = Array.from(document.querySelectorAll("a[href*='notebook'][href*='asin=']")).length;
+    if (count === lastCount && i > 2) break;
+    lastCount = count;
+
+    try {
+      scroller.scrollTop = scroller.scrollHeight;
+    } catch {
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    await sleep(500);
+  }
+}
+
+function scrapeNotebook() {
+  const rejectTitles = new Set(["メモとハイライト", "メモとハイライト。"]);
+  const rejectAuthors = new Set(["メモ付きのkindle本", "メモ付きのKindle本"]);
+
+  // Title candidates (avoid overly broad selectors like plain h3)
+  const title =
+    firstTextFiltered(
+      [
+        "#kp-notebook-title",
+        ".kp-notebook-title",
+        "h3.kp-notebook-title",
+        "h3#kp-notebook-title",
+        "[data-testid='kp-notebook-title']",
+        "[data-testid='notebook-book-title']",
+        ".kp-notebook-library-title",
+        ".kp-notebook-book-title",
+        // Some pages use cover image alt as title
+        "img[alt][class*='kp-notebook']",
+        "#kp-notebook-cover-image img[alt]",
+        "img[alt][src*='images-na']"
+      ],
+      rejectTitles
+    ) ||
+    // Fallback: try document title but reject generic
+    (() => {
+      const dt = normalizeText(document.title);
+      if (!dt) return "";
+      if (dt.includes("メモとハイライト")) return "";
+      return dt;
+    })();
+
+  // Author candidates (avoid generic secondary color text)
+  const authorRaw =
+    firstTextFiltered(
+      [
+        "#kp-notebook-author",
+        ".kp-notebook-author",
+        "p.kp-notebook-author",
+        "[data-testid='kp-notebook-author']",
+        "[data-testid='notebook-book-author']",
+        ".kp-notebook-metadata"
+      ],
+      rejectAuthors
+    ) || "";
+
+  const author = rejectAuthors.has(normalizeText(authorRaw)) ? "" : parseAuthorFromMeta(authorRaw);
 
   // Candidate highlight containers.
   const containers = [
@@ -157,7 +234,7 @@ function scrapeNotebook() {
 
   return {
     book: {
-      title: title || "(タイトル不明)",
+      title: title && !rejectTitles.has(normalizeText(title)) ? title : "(タイトル不明)",
       author: author || ""
     },
     highlights
@@ -172,11 +249,13 @@ function scrapeLibraryBooks() {
   for (const a of anchors) {
     const href = a.getAttribute("href") || "";
     if (!href) continue;
-    if (!href.includes("/kp/notebook")) continue;
+    if (!href.includes("notebook")) continue;
 
     const url = new URL(href, location.href).toString();
-    // Most book pages include asin=...
-    if (!url.includes("asin=")) continue;
+    // Most book pages include asin=... (but be tolerant of variations)
+    const u = new URL(url);
+    const asin = u.searchParams.get("asin") || u.searchParams.get("ASIN") || u.searchParams.get("book");
+    if (!asin) continue;
 
     const title =
       a.querySelector?.(".kp-notebook-library-title")?.textContent?.trim() ||
@@ -202,6 +281,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.type === "KINDLE_NOTEBOOK_LIST_BOOKS") {
+      await ensureLibraryLoaded();
       const data = scrapeLibraryBooks();
       sendResponse({ ok: true, data });
       return;
