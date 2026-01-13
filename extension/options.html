@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kindle → Readwise 設定</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Kindle → Readwise 設定</h1>
+
+      <section class="card">
+        <label for="token">Readwise API Token</label>
+        <input id="token" type="password" placeholder="Token xxxxx..." />
+        <div class="help">
+          Readwiseの<a href="https://readwise.io/access_token" target="_blank" rel="noreferrer">Access Token</a>を貼り付けてください。
+        </div>
+        <div class="buttons">
+          <button id="validate" class="secondary">検証</button>
+          <button id="save" class="primary">保存</button>
+        </div>
+        <pre id="status" class="status" aria-live="polite"></pre>
+      </section>
+
+      <section class="card">
+        <h2>使い方</h2>
+        <ol>
+          <li>Kindleノートブック（amazon.co.jp）で、取り込みたい本のページを開く</li>
+          <li>拡張アイコンを押して「このページから取り込み」</li>
+        </ol>
+        <p class="help">
+          ※ 現状は「表示中の本」だけを取り込みます（全ライブラリ一括は未対応）。
+        </p>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
+

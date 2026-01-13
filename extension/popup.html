@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Readwiseへ取り込み</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Readwiseへ取り込み</h1>
+
+      <div class="row">
+        <label for="token">Readwise Token</label>
+        <input id="token" type="password" placeholder="Token xxxxx..." />
+        <div class="help">
+          ReadwiseのAPI Tokenを保存すると、以後この画面から取り込めます。
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="save" class="secondary">保存</button>
+        <button id="import" class="primary">このページから取り込み</button>
+      </div>
+
+      <div class="buttons">
+        <button id="openOptions" class="link">詳細設定を開く</button>
+      </div>
+
+      <pre id="status" class="status" aria-live="polite"></pre>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
+

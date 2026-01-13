@@ -1,0 +1,82 @@
+.wrap {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic", sans-serif;
+  width: 360px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+h1 {
+  font-size: 14px;
+  margin: 0 0 10px 0;
+}
+
+.row {
+  margin: 10px 0;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #222;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.help {
+  font-size: 11px;
+  color: #555;
+  margin-top: 6px;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+button {
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+button.primary {
+  background: #2d6cdf;
+  color: white;
+  flex: 1;
+}
+
+button.secondary {
+  background: #f4f4f5;
+  color: #111;
+  border-color: #e5e7eb;
+}
+
+button.link {
+  background: transparent;
+  color: #2d6cdf;
+  padding: 6px 0;
+}
+
+.status {
+  margin-top: 10px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  color: #111;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 32px;
+}
+
