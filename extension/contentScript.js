@@ -36,6 +36,50 @@ function uniqueByText(items) {
   return out;
 }
 
+function uniqByUrl(items) {
+  const seen = new Set();
+  const out = [];
+  for (const it of items) {
+    const key = (it.url || "").trim();
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(it);
+  }
+  return out;
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function ensureHighlightsLoaded() {
+  // Some notebook pages lazy-load annotations as you scroll.
+  const scroller =
+    document.querySelector("#kp-notebook-annotations") ||
+    document.querySelector("#annotations") ||
+    document.querySelector("#kp-notebook-annotation-container") ||
+    document.scrollingElement ||
+    document.documentElement;
+
+  if (!scroller) return;
+
+  let last = -1;
+  for (let i = 0; i < 20; i++) {
+    const height = scroller.scrollHeight || 0;
+    if (height === last) break;
+    last = height;
+
+    try {
+      scroller.scrollTop = height;
+    } catch {
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    await sleep(500);
+  }
+}
+
 function scrapeNotebook() {
   const title = firstText([
     // Common Kindle Notebook title selectors
@@ -120,15 +164,52 @@ function scrapeNotebook() {
   };
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || typeof message !== "object") return;
-  if (message.type !== "KINDLE_NOTEBOOK_SCRAPE") return;
+function scrapeLibraryBooks() {
+  // Notebook library/list page: extract book links.
+  const anchors = Array.from(document.querySelectorAll("a[href]"));
+  const books = [];
 
-  try {
-    const data = scrapeNotebook();
-    sendResponse({ ok: true, data });
-  } catch (e) {
-    sendResponse({ ok: false, error: e?.message || String(e) });
+  for (const a of anchors) {
+    const href = a.getAttribute("href") || "";
+    if (!href) continue;
+    if (!href.includes("/kp/notebook")) continue;
+
+    const url = new URL(href, location.href).toString();
+    // Most book pages include asin=...
+    if (!url.includes("asin=")) continue;
+
+    const title =
+      a.querySelector?.(".kp-notebook-library-title")?.textContent?.trim() ||
+      a.querySelector?.(".kp-notebook-title")?.textContent?.trim() ||
+      a.textContent?.trim() ||
+      "";
+
+    books.push({ url, title });
   }
+
+  return { books: uniqByUrl(books) };
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  (async () => {
+    if (!message || typeof message !== "object") return;
+
+    if (message.type === "KINDLE_NOTEBOOK_SCRAPE") {
+      await ensureHighlightsLoaded();
+      const data = scrapeNotebook();
+      sendResponse({ ok: true, data });
+      return;
+    }
+
+    if (message.type === "KINDLE_NOTEBOOK_LIST_BOOKS") {
+      const data = scrapeLibraryBooks();
+      sendResponse({ ok: true, data });
+      return;
+    }
+  })().catch((e) => {
+    sendResponse({ ok: false, error: e?.message || String(e) });
+  });
+
+  return true;
 });
 

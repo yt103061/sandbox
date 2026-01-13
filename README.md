@@ -6,6 +6,8 @@ Amazon.co.jp版のKindleノートブック（`read.amazon.co.jp`）を開いて�
 
 - Amazon.co.jp / Amazon.com のKindleノートブック上で、**表示中の本**のハイライトを抽出
 - ReadwiseのAPIへ **highlight** として送信（`source_type: kindle` / `category: books`）
+- ノートブックのライブラリ一覧から **一括取り込み**（順番に遷移して各本を取り込み）
+- Readwise側に同一書籍がある場合、既存ハイライト（テキスト＋位置）と突き合わせて **重複をスキップ**
 
 ## まだできないこと（MVPなので未対応）
 
@@ -23,6 +25,7 @@ Amazon.co.jp版のKindleノートブック（`read.amazon.co.jp`）を開いて�
 5. Kindleノートブックを開く  
    - 例: `https://read.amazon.co.jp/kp/notebook`（ログインが必要）
 6. 取り込みたい本を表示した状態で、拡張アイコン → 「このページから取り込み」
+7. ライブラリ一覧を開いた状態なら、拡張アイコン → 「ライブラリを一括取り込み」
 
 ## 開発メモ
 
