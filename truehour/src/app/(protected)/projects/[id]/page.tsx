@@ -1,6 +1,6 @@
-\"use client\";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import ProjectStatsCard from "@/components/projects/ProjectStatsCard";
 import TaskList from "@/components/tasks/TaskList";
@@ -19,7 +19,7 @@ export default function ProjectDetailPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProject = () => {
+  const fetchProject = useCallback(() => {
     if (!projectId) return;
     setIsLoading(true);
     Promise.all([
@@ -32,11 +32,11 @@ export default function ProjectDetailPage() {
         setTasks(taskData.tasks ?? []);
       })
       .finally(() => setIsLoading(false));
-  };
+  }, [projectId]);
 
   useEffect(() => {
     fetchProject();
-  }, [projectId]);
+  }, [fetchProject]);
 
   if (isLoading) {
     return <LoadingSpinner />;

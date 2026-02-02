@@ -1,4 +1,4 @@
-\"use client\";
+"use client";
 
 import ProjectForm from "@/components/projects/ProjectForm";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
