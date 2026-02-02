@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String       @id @default(cuid())
+  email             String       @unique
+  name              String?
+  avatarUrl         String?
+  defaultHourlyRate Int?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  projects          Project[]
+  clients           Client[]
+  timeEntries       TimeEntry[]
+  taskHistories     TaskHistory[]
+}
+
+model Client {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  company   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+  @@index([userId])
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  name          String
+  description   String?
+  status        ProjectStatus @default(ACTIVE)
+  budgetMinutes Int?
+  deadline      DateTime?
+  hourlyRate    Int?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tasks         Task[]
+  @@index([userId])
+  @@index([clientId])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Task {
+  id                   String     @id @default(cuid())
+  projectId            String
+  project              Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title                String
+  description          String?
+  status               TaskStatus @default(TODO)
+  priority             Priority   @default(MEDIUM)
+  aiEstimatedMinutes   Int?
+  userEstimatedMinutes Int?
+  deadline             DateTime?
+  scheduledStart       DateTime?
+  scheduledEnd         DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  subtasks             Subtask[]
+  timeEntries          TimeEntry[]
+  @@index([projectId])
+  @@index([status])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Subtask {
+  id               String      @id @default(cuid())
+  taskId           String
+  task             Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title            String
+  orderIndex       Int
+  estimatedMinutes Int
+  isCompleted      Boolean     @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  timeEntries      TimeEntry[]
+  @@index([taskId])
+}
+
+model TimeEntry {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId          String?
+  task            Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  subtaskId       String?
+  subtask         Subtask?  @relation(fields: [subtaskId], references: [id], onDelete: SetNull)
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationMinutes Int?
+  note            String?
+  isManual        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([userId])
+  @@index([taskId])
+  @@index([startedAt])
+}
+
+model TaskHistory {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  normalizedType   String
+  originalTitle    String
+  estimatedMinutes Int
+  actualMinutes    Int
+  createdAt        DateTime @default(now())
+  @@index([userId, normalizedType])
+}

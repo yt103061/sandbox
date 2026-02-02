@@ -1,0 +1,17 @@
+# Node
+node_modules/
+.next/
+out/
+
+# Env
+.env.local
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Prisma
+prisma/migrations/
