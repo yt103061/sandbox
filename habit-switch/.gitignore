@@ -1,0 +1,11 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# XcodeGen generated project (regenerate from project.yml)
+HabitSwitch.xcodeproj/
+
+# macOS
+.DS_Store
