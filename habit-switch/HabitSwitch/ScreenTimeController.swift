@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import FamilyControls
 import DeviceActivity
 import ManagedSettings
@@ -39,7 +40,6 @@ final class ScreenTimeController: ObservableObject {
     }
 
     func saveRule() {
-        // DeviceActivity の unlock schedule は15分未満を避ける。
         rule.requiredLearningMinutes = max(1, min(rule.requiredLearningMinutes, 60))
         rule.unlockMinutes = max(15, min(rule.unlockMinutes, 120))
         HabitSwitchStore.saveRule(rule)
@@ -69,19 +69,14 @@ final class ScreenTimeController: ObservableObject {
         activityCenter.stopMonitoring([.habitSwitchLearning])
 
         let now = Date()
-        guard let endOfDay = Calendar.current.date(
-            bySettingHour: 23,
-            minute: 59,
-            second: 59,
-            of: now
-        ) else {
+        guard let monitoringEnd = Calendar.current.date(byAdding: .hour, value: 23, to: now) else {
             monitoringError = "監視時間を作成できませんでした。"
             return
         }
 
         let schedule = DeviceActivitySchedule(
             intervalStart: calendarComponents(for: now),
-            intervalEnd: calendarComponents(for: endOfDay),
+            intervalEnd: calendarComponents(for: monitoringEnd),
             repeats: false
         )
 
