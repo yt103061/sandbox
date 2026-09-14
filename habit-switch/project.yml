@@ -1,0 +1,85 @@
+name: HabitSwitch
+options:
+  bundleIdPrefix: com.yt103061
+  deploymentTarget:
+    iOS: "26.5"
+settings:
+  base:
+    SWIFT_VERSION: 5.9
+    DEVELOPMENT_TEAM: ""
+targets:
+  HabitSwitch:
+    type: application
+    platform: iOS
+    sources:
+      - path: HabitSwitch
+      - path: Shared
+    info:
+      path: Config/HabitSwitch-Info.plist
+      properties:
+        CFBundleDisplayName: HabitSwitch
+        UILaunchScreen: {}
+        LSApplicationQueriesSchemes:
+          - kindle
+          - golail
+          - ibooks
+    entitlements:
+      path: Config/HabitSwitch.entitlements
+    dependencies:
+      - target: HabitSwitchMonitor
+      - target: HabitSwitchShieldConfiguration
+      - target: HabitSwitchShieldAction
+
+  HabitSwitchMonitor:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: HabitSwitchMonitor
+      - path: Shared
+    info:
+      path: Config/HabitSwitchMonitor-Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension
+    entitlements:
+      path: Config/HabitSwitchMonitor.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yt103061.habitswitch.monitor
+
+  HabitSwitchShieldConfiguration:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: HabitSwitchShieldConfiguration
+      - path: Shared
+    info:
+      path: Config/HabitSwitchShieldConfiguration-Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    entitlements:
+      path: Config/HabitSwitchShieldConfiguration.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yt103061.habitswitch.shieldconfiguration
+
+  HabitSwitchShieldAction:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: HabitSwitchShieldAction
+      - path: Shared
+    info:
+      path: Config/HabitSwitchShieldAction-Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    entitlements:
+      path: Config/HabitSwitchShieldAction.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yt103061.habitswitch.shieldaction
