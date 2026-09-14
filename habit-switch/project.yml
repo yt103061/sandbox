@@ -25,6 +25,9 @@ targets:
           - ibooks
     entitlements:
       path: Config/HabitSwitch.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yt103061.habitswitch
     dependencies:
       - target: HabitSwitchMonitor
       - target: HabitSwitchShieldConfiguration
